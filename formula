@@ -1,0 +1,135 @@
+--[[
+    SECRET FORMULA
+	
+	CONTROLS:
+	Ctrl + T = Toggle tilt
+	Ctrl + K = Auto poke
+]]
+
+local players = game:GetService("Players")
+local rs = game:GetService("RunService").RenderStepped
+local uis = game:GetService("UserInputService")
+local repstg = game:GetService("ReplicatedStorage")
+
+
+local plr do 
+	plr = players.LocalPlayer 
+	if not plr then 
+		players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+		plr = players.LocalPlayer
+	end
+end
+
+local antiTilt = false 
+local autoPoke = false 
+
+local mouse = plr:GetMouse()
+local selectionBox = Instance.new("SelectionBox", game:GetService("CoreGui"):WaitForChild("RobloxGui"))
+local message = Instance.new("Message", selectionBox.Parent)
+
+selectionBox.Color3 = Color3.fromRGB(255, 0, 0)
+selectionBox.SurfaceTransparency = 0.3
+
+function swait(waitTime)
+	local startTime = tick()
+	repeat 
+		rs:Wait()
+	until tick() >= startTime + (waitTime or 0)
+end
+
+
+uis.InputBegan:Connect(function(key, isTyping)
+	local ctrlDown = uis:IsKeyDown(Enum.KeyCode.LeftControl) or uis:IsKeyDown(Enum.KeyCode.RightControl)
+	if not isTyping then 
+		if key.KeyCode == Enum.KeyCode.T and ctrlDown then  
+			antiTilt = not antiTilt 
+			message.Text = antiTilt and "Anti-Tilt on" or "Anti-Tilt off"
+			swait(3)
+			message.Text = ""
+		elseif key.KeyCode == Enum.KeyCode.K and plr.Character and ctrlDown then
+			autoPoke = not autoPoke
+			message.Text = autoPoke and "Auto Poke on" or "Auto Poke off"
+			swait(3)
+			message.Text = ""
+		end
+	end
+end)
+
+
+plr.CharacterAdded:Connect(function(character)
+	local animator = character:WaitForChild("Humanoid"):WaitForChild("Animator")
+
+	coroutine.wrap(function()
+		swait(2)
+		local stick = character:FindFirstChild("HockeyStick", true)
+		if stick then 
+			local added = stick:FindFirstChild("Blade", true)
+
+			if added then 
+				added.Touched:Connect(function(hit)
+					if hit.Name == "Puck" and not hit.Anchored and aimbot and targetSensor and hit.Velocity.Magnitude > 15 then
+
+						local magnitude = hit.Velocity.Magnitude 
+						local compareVelocity = hit.Velocity * Vector3.new(1, 0, 1)
+						local targetVelocity = CFrame.new(hit.Position, targetSensor.Position).LookVector * Vector3.new(1, 0, 1) * magnitude 
+
+						if (targetVelocity - compareVelocity).Magnitude < 50 and magnitude > character.PrimaryPart.Velocity.Magnitude + 15 then
+							hit.AssemblyLinearVelocity = targetVelocity + Vector3.new(math.random(-5, 5), hit.Velocity.Y, math.random(-5, 5))
+
+						end
+					end
+				end)
+			end
+		end
+
+	end)()
+	
+	coroutine.wrap(function()
+		swait(2)
+		local playerEvents = character:FindFirstChild("PlayerEventsFolder")
+		if playerEvents then 
+			local pokecheckFind = playerEvents:FindFirstChild("PokecheckFind")
+			if pokecheckFind then 
+				local stick = character:FindFirstChild("HockeyStick", true)
+				if stick then
+					local blade = stick:FindFirstChild("Blade", true)
+					
+					if blade then 
+						if blade:IsA("BasePart") then
+							while character.Parent do 
+								swait(0.5)
+								if autoPoke then 
+									local puck = workspace.UniversalPucks:FindFirstChild("Puck")
+									if puck then 
+										if not puck.Anchored then 
+											if not isnetworkowner(puck) then 
+												pokecheckFind:InvokeServer()
+											end
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end)()
+	
+	character:WaitForChild("HumanoidRootPart", math.huge).ChildAdded:Connect(function(child)
+		if child:IsA("BodyAngularVelocity") and antiTilt then 
+			while child.Parent do 
+				child.AngularVelocity = Vector3.new(0, 0, 0)
+				swait(0.1)
+			end
+		end
+	end)
+
+	animator.AnimatonPlayed:Connect(function(animation)
+		local name = animation.Animation.Name:lower()
+		warn(name)
+		if name:find("raisestick") then 
+			animation:Stop()
+		end
+	end)
+end)
