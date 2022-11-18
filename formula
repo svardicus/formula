@@ -127,7 +127,6 @@ plr.CharacterAdded:Connect(function(character)
 
 	animator.AnimationPlayed:Connect(function(animation)
 		local name = animation.Animation.Name:lower()
-		warn(name)
 		if name:find("raisestick") then 
 			animation:Stop()
 		end
